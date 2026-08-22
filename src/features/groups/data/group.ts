@@ -1,6 +1,7 @@
 export interface Group {
   id: string;
   name: string;
+  ownerId: string;
   createdAt: Date;
   createdBy: string | null;
   updatedAt: Date;

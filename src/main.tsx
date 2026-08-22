@@ -12,6 +12,7 @@ import { AuthProvider, ProtectedRoute } from "./features/authentication";
 import { Logout } from "./pages/Logout.tsx";
 import { theme } from "./lib/theme.ts";
 import { GroupsPage } from "./pages/Groups.tsx";
+import { UsersPage } from "./pages/Users.tsx";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
@@ -23,7 +24,7 @@ createRoot(document.getElementById("root")!).render(
             <Route element={<RootLayout />}>
               <Route element={<ProtectedRoute />}>
                 <Route index element={<Home />} />
-                <Route path="/users" element={<div>Users Page</div>} />
+                <Route path="/users" element={<UsersPage />} />
                 <Route path="/groups" element={<GroupsPage />} />
               </Route>
             </Route>

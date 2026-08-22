@@ -1,38 +1,62 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAuth } from "../../authentication";
-import {
-  DataGrid,
-  type GridColDef,
-  type GridPaginationModel,
-  type GridSortModel,
+import type {
+  GridColDef,
+  GridPaginationModel,
+  GridSortModel,
 } from "@mui/x-data-grid";
-import { Box, Button } from "@mui/material";
+import {
+  Alert,
+  Avatar,
+  Box,
+  Chip,
+  Snackbar,
+  Typography,
+  alpha,
+} from "@mui/material";
+import { DataTable, GroupIcon } from "../../../components/ui";
 import { GroupDrawer } from "./GroupDrawer";
 import type { Group, PaginatedGroups } from "../data/group";
 
 const DEFAULT_PAGE_SIZE = 10;
 
 const formatDate = (value: string | Date | null | undefined) => {
-  if (!value) return "-";
+  if (!value) return null;
 
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value.toString();
+  if (Number.isNaN(date.getTime())) return { date: value.toString(), time: "" };
 
-  return new Intl.DateTimeFormat("pt-BR", {
+  const datePart = new Intl.DateTimeFormat("pt-BR", {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
+  }).format(date);
+
+  const timePart = new Intl.DateTimeFormat("pt-BR", {
     hour: "2-digit",
     minute: "2-digit",
   }).format(date);
+
+  return { date: datePart, time: timePart };
 };
 
 export const GroupsTable = () => {
   const { api } = useAuth();
   const [groups, setGroups] = useState<PaginatedGroups | null>(null);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
+  const [snackbar, setSnackbar] = useState<{
+    open: boolean;
+    message: string;
+    severity: "success" | "error" | "info";
+  }>({
+    open: false,
+    message: "",
+    severity: "success",
+  });
+
   const [paginationModel, setPaginationModel] = useState<GridPaginationModel>({
     page: 0,
     pageSize: DEFAULT_PAGE_SIZE,
@@ -62,6 +86,11 @@ export const GroupsTable = () => {
         setGroups(response);
       } catch (error) {
         console.error("Error fetching groups:", error);
+        setSnackbar({
+          open: true,
+          message: "Erro ao carregar a lista de grupos.",
+          severity: "error",
+        });
         setGroups(null);
       } finally {
         setLoading(false);
@@ -69,6 +98,10 @@ export const GroupsTable = () => {
     },
     [api, ordering],
   );
+
+  const handleRefresh = useCallback(() => {
+    fetchGroups(paginationModel.page, paginationModel.pageSize);
+  }, [fetchGroups, paginationModel.page, paginationModel.pageSize]);
 
   const handleCloseDrawer = useCallback(() => {
     setSelectedGroup(null);
@@ -87,14 +120,29 @@ export const GroupsTable = () => {
 
   const handleSaveGroup = useCallback(
     async (payload: { id?: string; name: string }) => {
-      if (payload.id) {
-        await api.put(`/group/${payload.id}`, payload);
-      } else {
-        await api.post("/group", payload);
-      }
+      try {
+        if (payload.id) {
+          await api.put(`/group/${payload.id}`, payload);
+          setSnackbar({
+            open: true,
+            message: `Grupo "${payload.name}" atualizado com sucesso!`,
+            severity: "success",
+          });
+        } else {
+          await api.post("/group", payload);
+          setSnackbar({
+            open: true,
+            message: `Grupo "${payload.name}" criado com sucesso!`,
+            severity: "success",
+          });
+        }
 
-      await fetchGroups(paginationModel.page, paginationModel.pageSize);
-      handleCloseDrawer();
+        await fetchGroups(paginationModel.page, paginationModel.pageSize);
+        handleCloseDrawer();
+      } catch (error) {
+        console.error("Error saving group:", error);
+        throw error;
+      }
     },
     [
       api,
@@ -105,119 +153,350 @@ export const GroupsTable = () => {
     ],
   );
 
-  const handleRemoveGroup = useCallback(
-    async (groupId: string) => {
-      const groupToDelete = groups?.items.find((group) => group.id === groupId);
-      const confirmed = window.confirm(
-        `Tem certeza que deseja remover o grupo "${groupToDelete?.name ?? "selecionado"}"?`,
-      );
-
-      if (!confirmed) return;
-
+  const handleDeleteGroup = useCallback(
+    async (group: Group) => {
       try {
-        await api.delete(`/group/${groupId}`);
+        await api.delete(`/group/${group.id}`);
         setGroups((currentGroups) => {
           if (!currentGroups) return currentGroups;
 
           return {
             ...currentGroups,
             totalCount: Math.max(currentGroups.totalCount - 1, 0),
-            items: currentGroups.items.filter((group) => group.id !== groupId),
+            items: currentGroups.items.filter((item) => item.id !== group.id),
           };
+        });
+        setSnackbar({
+          open: true,
+          message: `Grupo "${group.name}" removido com sucesso!`,
+          severity: "success",
         });
       } catch (error) {
         console.error("Error deleting group:", error);
+        setSnackbar({
+          open: true,
+          message: "Erro ao excluir o grupo. Tente novamente.",
+          severity: "error",
+        });
+        throw error;
       }
     },
-    [api, groups?.items],
+    [api],
   );
 
   useEffect(() => {
     fetchGroups(paginationModel.page, paginationModel.pageSize);
   }, [fetchGroups, paginationModel.page, paginationModel.pageSize]);
 
-  const columns = useMemo<GridColDef[]>(
+  // Client-side quick filter on current page items
+  const filteredRows = useMemo(() => {
+    if (!groups?.items) return [];
+    if (!searchQuery.trim()) return groups.items;
+
+    const query = searchQuery.toLowerCase().trim();
+    return groups.items.filter(
+      (group) =>
+        group.name?.toLowerCase().includes(query) ||
+        String(group.id).toLowerCase().includes(query) ||
+        group.createdBy?.toLowerCase().includes(query) ||
+        group.updatedBy?.toLowerCase().includes(query),
+    );
+  }, [groups?.items, searchQuery]);
+
+  const columns = useMemo<GridColDef<Group>[]>(
     () => [
-      { field: "id", headerName: "#", width: 90 },
-      { field: "name", headerName: "Nome", width: 180 },
+      // {
+      //   field: "id",
+      //   headerName: "#",
+      //   width: 80,
+      //   minWidth: 70,
+      //   renderCell: (params) => (
+      //     <Typography
+      //       variant="caption"
+      //       sx={{
+      //         fontFamily: "monospace",
+      //         color: "text.secondary",
+      //         bgcolor: (theme) =>
+      //           theme.palette.mode === "dark"
+      //             ? "rgba(255, 255, 255, 0.06)"
+      //             : "rgba(0, 0, 0, 0.04)",
+      //         px: 0.9,
+      //         py: 0.35,
+      //         borderRadius: "6px",
+      //         fontWeight: 600,
+      //         fontSize: "0.75rem",
+      //         letterSpacing: "0.02em",
+      //       }}
+      //     >
+      //       #{params.value}
+      //     </Typography>
+      //   ),
+      // },
+      {
+        field: "name",
+        headerName: "Nome do Grupo",
+        flex: 1.5,
+        minWidth: 200,
+        renderCell: (params) => {
+          const name = String(params.value ?? "");
+          const initial = name ? name.charAt(0).toUpperCase() : "G";
+          return (
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                gap: 1.5,
+                width: "100%",
+                py: 0.5,
+              }}
+            >
+              <Avatar
+                sx={{
+                  width: 34,
+                  height: 34,
+                  fontSize: "0.875rem",
+                  fontWeight: 700,
+                  bgcolor: (theme) =>
+                    theme.palette.mode === "dark"
+                      ? alpha(theme.palette.primary.main, 0.25)
+                      : alpha(theme.palette.primary.main, 0.12),
+                  color: "primary.main",
+                  border: "1px solid",
+                  borderColor: (theme) =>
+                    alpha(theme.palette.primary.main, 0.25),
+                }}
+              >
+                {initial}
+              </Avatar>
+              <Box sx={{ minWidth: 0 }}>
+                <Typography
+                  variant="body2"
+                  sx={{
+                    fontWeight: 600,
+                    color: "text.primary",
+                    fontSize: "0.875rem",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {name}
+                </Typography>
+              </Box>
+            </Box>
+          );
+        },
+      },
+      {
+        field: "ownerName",
+        headerName: "Proprietário",
+        flex: 1,
+        minWidth: 140,
+        renderCell: (params) => {
+          const val = params.value as string | null;
+          if (!val) {
+            return (
+              <Typography variant="body2" color="text.disabled">
+                —
+              </Typography>
+            );
+          }
+          return (
+            <Chip
+              size="small"
+              variant="outlined"
+              label={val}
+              sx={{
+                borderRadius: "6px",
+                borderColor: "divider",
+                bgcolor: (theme) =>
+                  theme.palette.mode === "dark"
+                    ? "rgba(255, 255, 255, 0.03)"
+                    : "rgba(0, 0, 0, 0.02)",
+                fontWeight: 500,
+                fontSize: "0.75rem",
+              }}
+            />
+          );
+        },
+      },
       {
         field: "createdAt",
         headerName: "Criado em",
-        width: 150,
-        valueFormatter: (value) => formatDate(value),
+        flex: 1,
+        minWidth: 150,
+        renderCell: (params) => {
+          const formatted = formatDate(params.value);
+          if (!formatted) {
+            return (
+              <Typography variant="body2" color="text.disabled">
+                —
+              </Typography>
+            );
+          }
+          return (
+            <Box sx={{ display: "flex", flexDirection: "column" }}>
+              <Typography
+                variant="body2"
+                sx={{ fontWeight: 500, fontSize: "0.825rem", lineHeight: 1.2 }}
+              >
+                {formatted.date}
+              </Typography>
+              {formatted.time && (
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  sx={{ fontSize: "0.725rem" }}
+                >
+                  {formatted.time}
+                </Typography>
+              )}
+            </Box>
+          );
+        },
       },
       {
-        field: "createdBy",
+        field: "createdByName",
         headerName: "Criado por",
-        width: 150,
-        valueFormatter: (value) => value || "-",
+        flex: 1,
+        minWidth: 140,
+        renderCell: (params) => {
+          const val = params.value as string | null;
+          if (!val) {
+            return (
+              <Typography variant="body2" color="text.disabled">
+                —
+              </Typography>
+            );
+          }
+          return (
+            <Chip
+              size="small"
+              variant="outlined"
+              label={val}
+              sx={{
+                borderRadius: "6px",
+                borderColor: "divider",
+                bgcolor: (theme) =>
+                  theme.palette.mode === "dark"
+                    ? "rgba(255, 255, 255, 0.03)"
+                    : "rgba(0, 0, 0, 0.02)",
+                fontWeight: 500,
+                fontSize: "0.75rem",
+              }}
+            />
+          );
+        },
       },
       {
         field: "updatedAt",
         headerName: "Atualizado em",
-        width: 150,
-        valueFormatter: (value) => formatDate(value),
+        flex: 1,
+        minWidth: 150,
+        renderCell: (params) => {
+          const formatted = formatDate(params.value);
+          if (!formatted) {
+            return (
+              <Typography variant="body2" color="text.disabled">
+                —
+              </Typography>
+            );
+          }
+          return (
+            <Box sx={{ display: "flex", flexDirection: "column" }}>
+              <Typography
+                variant="body2"
+                sx={{ fontWeight: 500, fontSize: "0.825rem", lineHeight: 1.2 }}
+              >
+                {formatted.date}
+              </Typography>
+              {formatted.time && (
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  sx={{ fontSize: "0.725rem" }}
+                >
+                  {formatted.time}
+                </Typography>
+              )}
+            </Box>
+          );
+        },
       },
       {
-        field: "updatedBy",
+        field: "updatedByName",
         headerName: "Atualizado por",
-        width: 150,
-        valueFormatter: (value) => value || "-",
-      },
-      {
-        field: "actions",
-        headerName: "Ações",
-        width: 200,
-        sortable: false,
-        filterable: false,
-        disableColumnMenu: true,
-        renderCell: (params) => (
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-            <Button
+        flex: 1,
+        minWidth: 140,
+        renderCell: (params) => {
+          const val = params.value as string | null;
+          if (!val) {
+            return (
+              <Typography variant="body2" color="text.disabled">
+                —
+              </Typography>
+            );
+          }
+          return (
+            <Chip
+              size="small"
               variant="outlined"
-              size="small"
-              onClick={() => handleEditGroup(params.row as Group)}
-            >
-              Editar
-            </Button>
-            <Button
-              variant="contained"
-              color="error"
-              size="small"
-              onClick={() => handleRemoveGroup(String(params.id))}
-            >
-              Remover
-            </Button>
-          </Box>
-        ),
+              label={val}
+              sx={{
+                borderRadius: "6px",
+                borderColor: "divider",
+                bgcolor: (theme) =>
+                  theme.palette.mode === "dark"
+                    ? "rgba(255, 255, 255, 0.03)"
+                    : "rgba(0, 0, 0, 0.02)",
+                fontWeight: 500,
+                fontSize: "0.75rem",
+              }}
+            />
+          );
+        },
       },
     ],
-    [handleEditGroup, handleRemoveGroup],
+    [],
   );
 
   return (
-    <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-      <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
-        <Button variant="contained" onClick={handleAddGroup}>
-          Adicionar grupo
-        </Button>
-      </Box>
-
-      <DataGrid
-        rows={groups?.items ?? []}
+    <>
+      <DataTable<Group>
+        title="Grupos"
+        subtitle="Gerencie grupos, permissões e acessos dos usuários no sistema."
+        icon={<GroupIcon sx={{ fontSize: 24 }} />}
+        totalCount={groups?.totalCount}
+        totalCountLabel="grupo"
+        totalCountLabelPlural="grupos"
+        rows={filteredRows}
         columns={columns}
-        rowCount={groups?.totalCount ?? 0}
         loading={loading}
-        pagination
         paginationMode="server"
         paginationModel={paginationModel}
+        onPaginationModelChange={setPaginationModel}
         sortingMode="server"
         sortModel={sortModel}
         onSortModelChange={setSortModel}
-        onPaginationModelChange={setPaginationModel}
-        pageSizeOptions={[5, 10, 25]}
-        disableRowSelectionOnClick
-        autoHeight
+        onRefresh={handleRefresh}
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        searchPlaceholder="Buscar por nome, criador..."
+        onAdd={handleAddGroup}
+        addButtonLabel="Adicionar grupo"
+        onEdit={handleEditGroup}
+        onDelete={handleDeleteGroup}
+        deleteConfirmation={{
+          title: "Excluir grupo",
+          getMessage: (group) => (
+            <>
+              Tem certeza de que deseja remover o grupo{" "}
+              <strong>"{group.name}"</strong>? Todos os acessos e permissões
+              vinculados a este grupo serão impactados.
+            </>
+          ),
+          confirmLabel: "Excluir Grupo",
+        }}
       />
 
       <GroupDrawer
@@ -226,6 +505,27 @@ export const GroupsTable = () => {
         onClose={handleCloseDrawer}
         onSave={handleSaveGroup}
       />
-    </Box>
+
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={4000}
+        onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
+        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+      >
+        <Alert
+          onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
+          severity={snackbar.severity}
+          variant="filled"
+          sx={{
+            width: "100%",
+            borderRadius: 2,
+            boxShadow: "0 4px 16px rgba(0,0,0,0.15)",
+            fontWeight: 500,
+          }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
+    </>
   );
 };
