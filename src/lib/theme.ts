@@ -1,4 +1,4 @@
-import { createTheme, alpha } from "@mui/material/styles";
+import { createTheme } from "@mui/material/styles";
 
 export const theme = createTheme({
   colorSchemes: {
@@ -57,7 +57,8 @@ export const theme = createTheme({
     borderRadius: 10,
   },
   typography: {
-    fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
+    fontFamily:
+      "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
     h1: { fontWeight: 800, letterSpacing: "-0.03em" },
     h2: { fontWeight: 700, letterSpacing: "-0.025em" },
     h3: { fontWeight: 700, letterSpacing: "-0.02em" },
@@ -128,6 +129,20 @@ export const theme = createTheme({
           fontSize: "0.75rem",
           fontWeight: 500,
           padding: "6px 10px",
+        },
+      },
+    },
+    MuiDataGrid: {
+      styleOverrides: {
+        cell: {
+          "&:focus, &:focus-within": {
+            outline: "none",
+          },
+        },
+        columnHeader: {
+          "&:focus, &:focus-within": {
+            outline: "none",
+          },
         },
       },
     },

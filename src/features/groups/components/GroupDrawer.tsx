@@ -49,10 +49,13 @@ export const GroupDrawer = ({
     if (trimmed.length < 2)
       return "O nome do grupo deve ter pelo menos 2 caracteres.";
 
+    if (trimmed.length > 100)
+      return "O nome do grupo não pode ter mais de 100 caracteres.";
+
     return "";
   };
 
-  const handleSubmit = async (event?: React.FormEvent) => {
+  const handleSubmit = async (event?: React.SubmitEvent) => {
     if (event) {
       event.preventDefault();
     }

@@ -1,5 +1,10 @@
 import { useState, type MouseEvent } from "react";
-import { Outlet, useLocation, useNavigate, Link as RouterLink } from "react-router";
+import {
+  Outlet,
+  useLocation,
+  useNavigate,
+  Link as RouterLink,
+} from "react-router";
 import {
   Avatar,
   Box,
@@ -56,7 +61,9 @@ const RootLayout = () => {
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
 
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [userMenuAnchor, setUserMenuAnchor] = useState<null | HTMLElement>(null);
+  const [userMenuAnchor, setUserMenuAnchor] = useState<null | HTMLElement>(
+    null,
+  );
 
   const handleDrawerToggle = () => {
     setMobileOpen((prev) => !prev);
@@ -208,9 +215,13 @@ const RootLayout = () => {
                   </ListItemIcon>
                   <ListItemText
                     primary={item.label}
-                    primaryTypographyProps={{
-                      fontSize: "0.875rem",
-                      fontWeight: isActive ? 600 : 500,
+                    slotProps={{
+                      primary: {
+                        sx: {
+                          fontSize: "0.875rem",
+                          fontWeight: isActive ? 600 : 500,
+                        },
+                      },
                     }}
                   />
                 </ListItemButton>
@@ -223,7 +234,12 @@ const RootLayout = () => {
       <Divider />
 
       {/* User Mini Profile in Sidebar Footer */}
-      <Box sx={{ p: 2, bgcolor: (theme) => alpha(theme.palette.action.hover, 0.02) }}>
+      <Box
+        sx={{
+          p: 2,
+          bgcolor: (theme) => alpha(theme.palette.action.hover, 0.02),
+        }}
+      >
         <Stack direction="row" spacing={1.5} sx={{ alignItems: "center" }}>
           <Avatar
             sx={{
@@ -270,7 +286,10 @@ const RootLayout = () => {
               onClick={handleLogout}
               sx={{
                 color: "text.secondary",
-                "&:hover": { color: "error.main", bgcolor: alpha(theme.palette.error.main, 0.1) },
+                "&:hover": {
+                  color: "error.main",
+                  bgcolor: alpha(theme.palette.error.main, 0.1),
+                },
               }}
             >
               <LogoutIcon sx={{ fontSize: 18 }} />
@@ -282,7 +301,13 @@ const RootLayout = () => {
   );
 
   return (
-    <Box sx={{ display: "flex", minHeight: "100vh", bgcolor: "background.default" }}>
+    <Box
+      sx={{
+        display: "flex",
+        minHeight: "100vh",
+        bgcolor: "background.default",
+      }}
+    >
       {/* Mobile Drawer */}
       {isMobile ? (
         <Drawer
@@ -376,7 +401,10 @@ const RootLayout = () => {
 
               {/* Breadcrumb / Title Context in Header for mobile */}
               {isMobile && (
-                <Typography variant="h6" sx={{ fontWeight: 700, fontSize: "1.1rem" }}>
+                <Typography
+                  variant="h6"
+                  sx={{ fontWeight: 700, fontSize: "1.1rem" }}
+                >
                   Meus Pila
                 </Typography>
               )}
@@ -428,10 +456,17 @@ const RootLayout = () => {
                 }}
               >
                 <Box sx={{ px: 2, py: 1.5 }}>
-                  <Typography variant="subtitle2" sx={{ fontWeight: 700, lineHeight: 1.2 }}>
+                  <Typography
+                    variant="subtitle2"
+                    sx={{ fontWeight: 700, lineHeight: 1.2 }}
+                  >
                     {userDisplayName}
                   </Typography>
-                  <Typography variant="caption" color="text.secondary" sx={{ wordBreak: "break-all" }}>
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    sx={{ wordBreak: "break-all" }}
+                  >
                     {user?.email || "Usuário autenticado"}
                   </Typography>
                 </Box>
@@ -505,7 +540,8 @@ const RootLayout = () => {
             }}
           >
             <Typography variant="caption" color="text.secondary">
-              © {new Date().getFullYear()} Meus Pila — Sistema de Gestão Financeira
+              © {new Date().getFullYear()} Meus Pila — Sistema de Gestão
+              Financeira
             </Typography>
             <Typography variant="caption" color="text.disabled">
               Versão 1.0.0
