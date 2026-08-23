@@ -306,6 +306,7 @@ export const UsersTable = () => {
             >
               <Box sx={{ minWidth: 0 }}>
                 <Typography
+                  component="div"
                   variant="body2"
                   sx={{
                     fontWeight: 600,
