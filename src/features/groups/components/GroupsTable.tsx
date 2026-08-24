@@ -64,7 +64,7 @@ export const GroupsTable = () => {
           params.set("ordering", ordering);
         }
         const response = await api.get<PaginatedGroups>(
-          `/group?${params.toString()}`,
+          `/groups?${params.toString()}`,
         );
         setGroups(response);
       } catch (error) {
@@ -105,14 +105,14 @@ export const GroupsTable = () => {
     async (payload: { id?: string; name: string }) => {
       try {
         if (payload.id) {
-          await api.put(`/group/${payload.id}`, payload);
+          await api.put(`/groups/${payload.id}`, payload);
           setSnackbar({
             open: true,
             message: `Grupo "${payload.name}" atualizado com sucesso!`,
             severity: "success",
           });
         } else {
-          await api.post("/group", payload);
+          await api.post("/groups", payload);
           setSnackbar({
             open: true,
             message: `Grupo "${payload.name}" criado com sucesso!`,
@@ -139,7 +139,7 @@ export const GroupsTable = () => {
   const handleDeleteGroup = useCallback(
     async (group: Group) => {
       try {
-        await api.delete(`/group/${group.id}`);
+        await api.delete(`/groups/${group.id}`);
         setSnackbar({
           open: true,
           message: `Grupo "${group.name}" removido com sucesso!`,

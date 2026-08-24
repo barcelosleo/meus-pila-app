@@ -31,7 +31,9 @@ const Home = () => {
   useEffect(() => {
     async function loadStats() {
       try {
-        const res = await api.get<PaginatedGroups>("/group?pageNumber=1&pageSize=1");
+        const res = await api.get<PaginatedGroups>(
+          "/groups?pageNumber=1&pageSize=1",
+        );
         setTotalGroups(res.totalCount);
       } catch {
         // Fallback if not available
@@ -81,10 +83,11 @@ const Home = () => {
               <Box>
                 <Chip
                   size="small"
-                  label={currentDate.charAt(0).toUpperCase() + currentDate.slice(1)}
+                  label={
+                    currentDate.charAt(0).toUpperCase() + currentDate.slice(1)
+                  }
                   sx={{
-                    bgcolor: (theme) =>
-                      alpha(theme.palette.primary.main, 0.1),
+                    bgcolor: (theme) => alpha(theme.palette.primary.main, 0.1),
                     color: "primary.main",
                     fontWeight: 600,
                     mb: 1.5,
@@ -108,7 +111,8 @@ const Home = () => {
                   sx={{ mt: 0.75, maxWidth: 520 }}
                 >
                   Bem-vindo ao painel de controle do <strong>Meus Pila</strong>.
-                  Acompanhe grupos, permissões e status do sistema em tempo real.
+                  Acompanhe grupos, permissões e status do sistema em tempo
+                  real.
                 </Typography>
               </Box>
 
@@ -323,7 +327,11 @@ const Home = () => {
               <Typography variant="h6" sx={{ fontWeight: 700, mb: 1 }}>
                 Informações da Conta
               </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 2.5 }}>
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                sx={{ mb: 2.5 }}
+              >
                 Dados da sessão atual
               </Typography>
 
@@ -338,7 +346,11 @@ const Home = () => {
                         : "#f8fafc",
                   }}
                 >
-                  <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    sx={{ display: "block" }}
+                  >
                     E-mail Conectado
                   </Typography>
                   <Typography variant="body2" sx={{ fontWeight: 600 }}>
@@ -356,10 +368,17 @@ const Home = () => {
                         : "#f8fafc",
                   }}
                 >
-                  <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    sx={{ display: "block" }}
+                  >
                     ID do Usuário
                   </Typography>
-                  <Typography variant="caption" sx={{ fontFamily: "monospace", fontWeight: 600 }}>
+                  <Typography
+                    variant="caption"
+                    sx={{ fontFamily: "monospace", fontWeight: 600 }}
+                  >
                     {user?.id || "local-user"}
                   </Typography>
                 </Box>

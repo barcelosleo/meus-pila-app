@@ -25,7 +25,7 @@ export const MyGroupsView = () => {
     setLoading(true);
     try {
       const response = await api.get<PaginatedGroups>(
-        `/group?pageNumber=1&pageSize=100`,
+        `/groups?pageNumber=1&pageSize=100`,
       );
       setGroups(response.items.filter((group) => group.ownerId === user?.id));
       setError(false);

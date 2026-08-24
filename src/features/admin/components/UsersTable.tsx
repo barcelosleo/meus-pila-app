@@ -18,6 +18,7 @@ import { DataTable, PeopleIcon } from "../../../components/ui";
 import { UserDrawer } from "./UserDrawer";
 import type { User, PaginatedUsers } from "../data/user";
 import { formatDateTime } from "../../../utils/formatters";
+import { fetchUsers as fetchUsersRequest } from "../services/user-service";
 
 const DEFAULT_PAGE_SIZE = 10;
 
@@ -52,16 +53,12 @@ export const UsersTable = () => {
     async (page: number, pageSize: number) => {
       setLoading(true);
       try {
-        const params = new URLSearchParams({
-          pageNumber: String(page + 1),
-          pageSize: String(pageSize),
+        const response = await fetchUsersRequest(api, {
+          page,
+          pageSize,
+          ordering,
+          searchQuery,
         });
-        if (ordering) {
-          params.set("ordering", ordering);
-        }
-        const response = await api.get<PaginatedUsers>(
-          `/user?${params.toString()}`,
-        );
         setUsers(response);
       } catch (error) {
         console.error("Error fetching users:", error);
@@ -102,7 +99,7 @@ export const UsersTable = () => {
       try {
         if (user.id) {
           // Update existing user
-          await api.put(`/user/${user.id}`, user);
+          await api.put(`/users/${user.id}`, user);
           setSnackbar({
             open: true,
             message: "Usuário atualizado com sucesso.",
@@ -110,7 +107,7 @@ export const UsersTable = () => {
           });
         } else {
           // Create new user
-          await api.post("/user", user);
+          await api.post("/users", user);
           setSnackbar({
             open: true,
             message: "Usuário criado com sucesso.",
@@ -141,7 +138,7 @@ export const UsersTable = () => {
   const handleDeleteUser = useCallback(
     async (user: User) => {
       try {
-        await api.delete(`/user/${user.id}`);
+        await api.delete(`/users/${user.id}`);
         setSnackbar({
           open: true,
           message: "Usuário deletado com sucesso.",
@@ -163,24 +160,6 @@ export const UsersTable = () => {
   useEffect(() => {
     fetchUsers(paginationModel.page, paginationModel.pageSize);
   }, [fetchUsers, paginationModel.page, paginationModel.pageSize]);
-
-  // Client-side quick filter on current page items
-  const filteredRows = useMemo(() => {
-    if (!users?.items) return [];
-    if (!searchQuery.trim()) return users.items;
-
-    const query = searchQuery.toLowerCase().trim();
-    return users.items.filter(
-      (user) =>
-        user.name?.toLowerCase().includes(query) ||
-        user.email?.toLowerCase().includes(query) ||
-        user.role?.toLowerCase().includes(query) ||
-        String(user.isActive).toLowerCase().includes(query) ||
-        String(user.id).toLowerCase().includes(query) ||
-        user.createdBy?.toLowerCase().includes(query) ||
-        user.updatedBy?.toLowerCase().includes(query),
-    );
-  }, [users?.items, searchQuery]);
 
   const columns: GridColDef[] = useMemo(
     () => [
@@ -489,7 +468,7 @@ export const UsersTable = () => {
         totalCount={users?.totalCount}
         totalCountLabel="usuário"
         totalCountLabelPlural="usuários"
-        rows={filteredRows}
+        rows={users?.items ?? []}
         columns={columns}
         loading={loading}
         paginationMode="server"

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   Alert,
   Avatar,
@@ -15,13 +15,20 @@ import {
 } from "@mui/material";
 import { useAuth } from "../../authentication";
 import { CloseIcon, GroupIcon } from "../../../components/ui";
+import { AsyncPaginatedAutocomplete } from "../../../components/form";
+import { fetchUserById, fetchUsers } from "../../admin";
+import type { User } from "../../admin";
 import type { Group } from "../data/group";
 
 export interface GroupDrawerProps {
   open: boolean;
   group?: Group | null;
   onClose: () => void;
-  onSave?: (payload: { id?: string; name: string }) => Promise<void> | void;
+  onSave?: (payload: {
+    id?: string;
+    name: string;
+    ownerId: string;
+  }) => Promise<void> | void;
 }
 
 export const GroupDrawer = ({
@@ -32,6 +39,7 @@ export const GroupDrawer = ({
 }: GroupDrawerProps) => {
   const { api } = useAuth();
   const [name, setName] = useState("");
+  const [owner, setOwner] = useState<User | null>(null);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -39,8 +47,38 @@ export const GroupDrawer = ({
 
   useEffect(() => {
     setName(group?.name ?? "");
+    setOwner(null);
     setError("");
-  }, [group, open]);
+
+    if (!open || !group?.ownerId) return;
+
+    let cancelled = false;
+
+    fetchUserById(api, group.ownerId)
+      .then((user) => {
+        if (!cancelled) setOwner(user);
+      })
+      .catch((err) => {
+        console.error("Error fetching group owner:", err);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [group, open, api]);
+
+  const fetchOwnerOptions = useCallback(
+    ({
+      page,
+      pageSize,
+      searchQuery,
+    }: {
+      page: number;
+      pageSize: number;
+      searchQuery: string;
+    }) => fetchUsers(api, { page, pageSize, searchQuery }),
+    [api],
+  );
 
   const validateName = (value: string) => {
     const trimmed = value.trim();
@@ -68,21 +106,27 @@ export const GroupDrawer = ({
       return;
     }
 
+    if (!owner) {
+      setError("O dono do grupo é obrigatório.");
+      return;
+    }
+
     setSubmitting(true);
     setError("");
 
     try {
-      const payload: { id?: string; name: string } = {
+      const payload: { id?: string; name: string; ownerId: string } = {
         id: group?.id,
         name: trimmedName,
+        ownerId: owner.id,
       };
 
       if (onSave) {
         await onSave(payload);
       } else if (isEditing && group?.id) {
-        await api.put(`/group/${group.id}`, payload);
+        await api.put(`/groups/${group.id}`, payload);
       } else {
-        await api.post("/group", payload);
+        await api.post("/groups", payload);
       }
 
       onClose();
@@ -210,6 +254,17 @@ export const GroupDrawer = ({
               }}
             />
 
+            <AsyncPaginatedAutocomplete<User>
+              label="Dono"
+              placeholder="Busque por nome ou e-mail"
+              value={owner}
+              onChange={setOwner}
+              fetchOptions={fetchOwnerOptions}
+              getOptionLabel={(user) => `${user.name} (${user.email})`}
+              isOptionEqualToValue={(option, val) => option.id === val.id}
+              required
+            />
+
             <Box
               sx={{
                 p: 2,
@@ -273,7 +328,7 @@ export const GroupDrawer = ({
           <Button
             type="submit"
             variant="contained"
-            disabled={submitting || !name.trim()}
+            disabled={submitting || !name.trim() || !owner}
             startIcon={
               submitting ? <CircularProgress size={16} color="inherit" /> : null
             }

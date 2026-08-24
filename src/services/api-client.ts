@@ -147,7 +147,7 @@ class ApiClient {
     const current = this.tokenStore.get();
     if (!current?.refreshToken) throw new SessionExpiredError();
 
-    const res = await fetch(`${this.baseUrl}/user/refresh-token`, {
+    const res = await fetch(`${this.baseUrl}/users/refresh-token`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

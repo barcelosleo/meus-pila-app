@@ -21,6 +21,7 @@ import {
 import { useAuth } from "../../authentication";
 import { CloseIcon, GroupIcon } from "../../../components/ui";
 import type { User } from "../data/user";
+import type { Role } from "../../authentication";
 
 export interface UserDrawerProps {
   open: boolean;
@@ -45,7 +46,7 @@ export const UserDrawer = ({
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isActive, setIsActive] = useState(true);
-  const [role, setRole] = useState<"Admin" | "User" | "GroupManager">("User");
+  const [role, setRole] = useState<Role>("User");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 

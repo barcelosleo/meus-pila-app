@@ -69,7 +69,7 @@ export const AuthProvider = ({
       }
 
       try {
-        const currentUser = await api.request<User>("/user/me");
+        const currentUser = await api.request<User>("/users/me");
         setUser(currentUser);
       } catch {
         setUser(null);
@@ -83,7 +83,7 @@ export const AuthProvider = ({
 
   const login = useCallback(
     async (email: string, password: string) => {
-      const data = await api.request<TokenPair & User>("/user/authenticate", {
+      const data = await api.request<TokenPair & User>("/users/authenticate", {
         method: "POST",
         body: JSON.stringify({ email, password }),
         skipAuth: true,
