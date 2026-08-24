@@ -11,11 +11,13 @@ import {
   LocalStorageTokenStore,
   type TokenPair,
 } from "../../../services/api-client";
+import { hasRole as checkRole, type Role } from "../data/role";
 
 export interface User {
   id: string;
   email: string;
   name: string;
+  role: Role;
 }
 
 export interface AuthContextType {
@@ -24,6 +26,7 @@ export interface AuthContextType {
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
+  hasRole: (allowed: Role[]) => boolean;
   api: ApiClient;
 }
 
@@ -91,7 +94,12 @@ export const AuthProvider = ({
         refreshToken: data.refreshToken,
         userId: data.id,
       });
-      setUser({ id: data.id, email: data.email, name: data.name });
+      setUser({
+        id: data.id,
+        email: data.email,
+        name: data.name,
+        role: data.role,
+      });
     },
     [api],
   );
@@ -102,6 +110,7 @@ export const AuthProvider = ({
     isLoading,
     login,
     logout,
+    hasRole: (allowed) => checkRole(user, allowed),
     api,
   };
 

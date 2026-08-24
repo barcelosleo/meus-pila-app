@@ -4,15 +4,21 @@ import { BrowserRouter, Routes, Route } from "react-router";
 import { ThemeProvider, CssBaseline } from "@mui/material";
 import About from "./pages/About.tsx";
 import Home from "./pages/Home.tsx";
-import AuthLayout from "./layouts/AuthLayout.tsx";
+import UnauthenticatedLayout from "./layouts/UnauthenticatedLayout.tsx";
 import Login from "./pages/Login.tsx";
 import Register from "./pages/Register.tsx";
 import RootLayout from "./layouts/RootLayout.tsx";
-import { AuthProvider, ProtectedRoute } from "./features/authentication";
+import {
+  AuthProvider,
+  ProtectedRoute,
+  RoleGuard,
+  ROLES,
+} from "./features/authentication";
 import { Logout } from "./pages/Logout.tsx";
 import { theme } from "./lib/theme.ts";
 import { GroupsPage } from "./pages/Groups.tsx";
 import { UsersPage } from "./pages/Users.tsx";
+import Forbidden from "./pages/Forbidden.tsx";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
@@ -24,11 +30,14 @@ createRoot(document.getElementById("root")!).render(
             <Route element={<RootLayout />}>
               <Route element={<ProtectedRoute />}>
                 <Route index element={<Home />} />
-                <Route path="/users" element={<UsersPage />} />
+                <Route element={<RoleGuard allow={[ROLES.ADMIN]} />}>
+                  <Route path="/users" element={<UsersPage />} />
+                </Route>
                 <Route path="/groups" element={<GroupsPage />} />
+                <Route path="/forbidden" element={<Forbidden />} />
               </Route>
             </Route>
-            <Route element={<AuthLayout />}>
+            <Route element={<UnauthenticatedLayout />}>
               <Route path="/about" element={<About />} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />

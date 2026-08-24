@@ -1,10 +1,11 @@
 import type { PaginatedEntity } from "../../../data/paginated-entity";
+import type { Role } from "../../authentication/data/role";
 
 export interface User {
   id: string;
   name: string;
   email: string;
-  role: "Admin" | "User" | "GroupManager";
+  role: Role;
   isActive: boolean;
   createdAt: Date;
   createdBy: string | null;

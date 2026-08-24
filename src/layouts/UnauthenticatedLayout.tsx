@@ -9,7 +9,7 @@ import {
   alpha,
 } from "@mui/material";
 
-const AuthLayout = () => {
+const UnauthenticatedLayout = () => {
   return (
     <Box
       sx={{
@@ -153,4 +153,4 @@ const AuthLayout = () => {
   );
 };
 
-export default AuthLayout;
+export default UnauthenticatedLayout;

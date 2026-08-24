@@ -140,15 +140,6 @@ export const GroupsTable = () => {
     async (group: Group) => {
       try {
         await api.delete(`/group/${group.id}`);
-        setGroups((currentGroups) => {
-          if (!currentGroups) return currentGroups;
-
-          return {
-            ...currentGroups,
-            totalCount: Math.max(currentGroups.totalCount - 1, 0),
-            items: currentGroups.items.filter((item) => item.id !== group.id),
-          };
-        });
         setSnackbar({
           open: true,
           message: `Grupo "${group.name}" removido com sucesso!`,
@@ -163,8 +154,9 @@ export const GroupsTable = () => {
         });
         throw error;
       }
+      await fetchGroups(paginationModel.page, paginationModel.pageSize);
     },
-    [api],
+    [api, fetchGroups, paginationModel.page, paginationModel.pageSize],
   );
 
   useEffect(() => {

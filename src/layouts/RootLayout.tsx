@@ -28,6 +28,7 @@ import {
   useTheme,
 } from "@mui/material";
 import { useAuth } from "../features/authentication";
+import { ROLES, type Role } from "../features/authentication";
 import {
   DashboardIcon,
   GroupIcon,
@@ -44,21 +45,31 @@ interface NavItem {
   to: string;
   icon: React.ReactElement;
   badge?: string;
+  roles?: Role[];
 }
 
 const navItems: NavItem[] = [
   { label: "Dashboard", to: "/", icon: <DashboardIcon /> },
-  { label: "Usuários", to: "/users", icon: <PeopleIcon /> },
+  {
+    label: "Usuários",
+    to: "/users",
+    icon: <PeopleIcon />,
+    roles: [ROLES.ADMIN],
+  },
   { label: "Grupos", to: "/groups", icon: <GroupIcon /> },
   { label: "Sobre o Sistema", to: "/about", icon: <ShieldIcon /> },
 ];
 
 const RootLayout = () => {
-  const { user, logout } = useAuth();
+  const { user, logout, hasRole } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
+
+  const visibleNavItems = navItems.filter(
+    (item) => !item.roles || hasRole(item.roles),
+  );
 
   const [mobileOpen, setMobileOpen] = useState(false);
   const [userMenuAnchor, setUserMenuAnchor] = useState<null | HTMLElement>(
@@ -168,7 +179,7 @@ const RootLayout = () => {
         </Typography>
 
         <List sx={{ pt: 0.5 }}>
-          {navItems.map((item) => {
+          {visibleNavItems.map((item) => {
             const isActive =
               item.to === "/"
                 ? location.pathname === "/"
